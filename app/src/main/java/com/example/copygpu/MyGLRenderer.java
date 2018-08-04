@@ -67,6 +67,8 @@ public class MyGLRenderer implements MySurfaceView.Renderer {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
         mPreviewTexture.updateTexImage();
+        //直接将预览绘制到屏幕
+        mPreview.draw();
 
         //将一个YUV数据放到OES纹理，再将纹理绘制到屏幕
         /*byte[] bytes = new byte[1080*1920*3/2];
@@ -75,12 +77,12 @@ public class MyGLRenderer implements MySurfaceView.Renderer {
         mOesPicture.draw();*/
 
         //将预览绘制到一个2D纹理，再将纹理绘制到屏幕
-        beginRenderTarget(GLES20.GL_TEXTURE_2D, m2DTextureId);
+        /*beginRenderTarget(GLES20.GL_TEXTURE_2D, m2DTextureId);
         GLUtil.checkGlError();
         mPreview.draw();
         GLUtil.checkGlError();
         endRenderTarget();
-        m2DPicture.draw();
+        m2DPicture.draw();*/
 
         //将预览绘制到一个OES纹理，再将纹理绘制到屏幕
         /*beginRenderTarget(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mOESTextureId);
