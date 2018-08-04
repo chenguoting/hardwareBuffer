@@ -9,6 +9,8 @@ import android.util.Log;
 import com.example.copygpu.gpu.GLUtil;
 import com.example.copygpu.view.MySurfaceView;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 
 public class MyGLRenderer implements MySurfaceView.Renderer {
@@ -84,19 +86,23 @@ public class MyGLRenderer implements MySurfaceView.Renderer {
         endRenderTarget();
         m2DPicture.draw();*/
 
-        /*try {
-            Thread.sleep(300);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }*/
-        //将预览绘制到一个OES纹理，再将纹理绘制到屏幕
+        long start = System.currentTimeMillis();
+        //将预览绘制到一个OES纹理，将纹理的数据拷贝出来并保存，再将纹理绘制到屏幕
         beginRenderTarget(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mOESTextureId);
         GLUtil.checkGlError();
         mOes2OesPicture.draw();
         GLUtil.checkGlError();
+        GLES20.glFinish();
         endRenderTarget();
+        yuv = mGLCopyJni.getBuffer();
+        long end = System.currentTimeMillis();
+        time = time * 0.8f + (end-start) * 0.2f;
+        Log.i(TAG, "time "+time);
+        save(yuv);
         mOesPicture.draw();
     }
+    float time = 0;
+    byte[] yuv;
 
     @Override
     public void onSurfaceDestroyed() {
@@ -132,6 +138,17 @@ public class MyGLRenderer implements MySurfaceView.Renderer {
     public void endRenderTarget(){
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
         GLUtil.checkGlError();
+    }
+
+    private static void save(byte[] yuv) {
+        try {
+            String pathName = "/sdcard/hw.yuv";
+            FileOutputStream outputStream = new FileOutputStream(pathName);
+            outputStream.write(yuv);
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

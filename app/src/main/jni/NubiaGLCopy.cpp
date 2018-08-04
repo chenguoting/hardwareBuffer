@@ -27,22 +27,23 @@ Java_com_example_copygpu_GLCopyJni_getBuffer(
         JNIEnv*env, jclass type, jlong handler)
 {
     GraphicBufferEx* graphicBufferEx =  (GraphicBufferEx*)handler;
-    jbyteArray result = env->NewByteArray(graphicBufferEx->getWidth()*graphicBufferEx->getHeight()*3/2);
-    jbyte* result_p = env->GetByteArrayElements(result, NULL);
+    jbyteArray jYuvArray = env->NewByteArray(graphicBufferEx->getWidth()*graphicBufferEx->getHeight()*3/2);
+    jbyte* yuvArray = env->GetByteArrayElements(jYuvArray, NULL);
     GPUIPBuffer buffer;
     buffer.width = graphicBufferEx->getWidth();
     buffer.height = graphicBufferEx->getHeight();
     buffer.format = graphicBufferEx->getFormat();
     buffer.stride = buffer.width;
     buffer.length = buffer.stride * buffer.height * 3 / 2;
-    buffer.pY = result_p;
-    buffer.pU = result_p + buffer.stride * buffer.height;
+    buffer.pY = yuvArray;
+    buffer.pU = yuvArray + buffer.stride * buffer.height;
     buffer.pV = buffer.pU;
-    //buffer.
+
     graphicBufferEx->getBuffer(GPUIPBuffer_NV21_COPY, &buffer);
+    //LOGI("dump yuv");
     //dump("/sdcard/123.yuv", buffer.pY, buffer.length);
-    env->ReleaseByteArrayElements(result, result_p, 0);
-    return result;
+    env->ReleaseByteArrayElements(jYuvArray, yuvArray, 0);
+    return jYuvArray;
 }
 
 JNIEXPORT void JNICALL
