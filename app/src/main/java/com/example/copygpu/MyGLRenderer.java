@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
-import android.opengl.GLES30;
 import android.util.Log;
 
 import com.example.copygpu.gpu.GLUtil;
@@ -18,9 +17,11 @@ public class MyGLRenderer implements MySurfaceView.Renderer {
     private int mPreviewTextureId = -1;
     private SurfaceTexture mPreviewTexture;
     private GLCopyJni mGLCopyJni;
-    private int mBufferTextureId = -1;
-    private Picture mPicture;
-    private Picture mPicture2;
+    private int mOESTextureId = -1;
+    private Picture mPreview;
+    private Picture m2DPicture;
+    private Picture mOesPicture;
+    private Picture mOes2OesPicture;
     private int[] mFrameBuffer;
     private int m2DTextureId = -1;
 
@@ -38,16 +39,19 @@ public class MyGLRenderer implements MySurfaceView.Renderer {
         mPreviewTextureId = GLUtil.getOneTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
         mPreviewTexture.detachFromGLContext();
         mPreviewTexture.attachToGLContext(mPreviewTextureId);
-        mPicture = new Picture(mContext.getResources(), R.raw.texture_vertex_shader, R.raw.texture_oes_fragment_shader,
+        mPreview = new Picture(mContext.getResources(), R.raw.texture_vertex_shader, R.raw.texture_oes_fragment_shader,
+                mPreviewTextureId, GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
+        mOes2OesPicture = new Picture(mContext.getResources(), R.raw.texture_vertex_shader, R.raw.texture_oes2oes_fragment_shader,
                 mPreviewTextureId, GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
 
-        mBufferTextureId = GLUtil.getOneTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
-        mGLCopyJni = new GLCopyJni(1080, 1920, mBufferTextureId);
+        mOESTextureId = GLUtil.getOneTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
+        mGLCopyJni = new GLCopyJni(1080, 1920, mOESTextureId);
+        mOesPicture = new Picture(mContext.getResources(), R.raw.texture_vertex_shader, R.raw.texture_oes_fragment_shader,
+                mOESTextureId, GLES11Ext.GL_TEXTURE_EXTERNAL_OES);
 
         m2DTextureId = GLUtil.getOneTexture(GLES20.GL_TEXTURE_2D);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, m2DTextureId);
         GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, 1080, 1920, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
-        mPicture2 = new Picture(mContext.getResources(), R.raw.texture_vertex_shader, R.raw.texture_fragment_shader,
+        m2DPicture = new Picture(mContext.getResources(), R.raw.texture_vertex_shader, R.raw.texture_2d_fragment_shader,
                 m2DTextureId, GLES20.GL_TEXTURE_2D);
     }
 
@@ -64,17 +68,27 @@ public class MyGLRenderer implements MySurfaceView.Renderer {
 
         mPreviewTexture.updateTexImage();
 
-        //mPicture.draw();
-        //byte[] bytes = new byte[1080*1920*3/2];
-        //Arrays.fill(bytes, (byte)127);
-        //mGLCopyJni.setBuffer(bytes);
-        //mPicture2.draw();
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
-        beginRenderTarget(GLES20.GL_TEXTURE_2D, m2DTextureId);
-        mPicture.draw();
-        endRenderTarget();
+        //将一个YUV数据放到OES纹理，再将纹理绘制到屏幕
+        /*byte[] bytes = new byte[1080*1920*3/2];
+        Arrays.fill(bytes, (byte)127);
+        mGLCopyJni.setBuffer(bytes);
+        mOesPicture.draw();*/
 
-        mPicture2.draw();
+        //将预览绘制到一个2D纹理，再将纹理绘制到屏幕
+        beginRenderTarget(GLES20.GL_TEXTURE_2D, m2DTextureId);
+        GLUtil.checkGlError();
+        mPreview.draw();
+        GLUtil.checkGlError();
+        endRenderTarget();
+        m2DPicture.draw();
+
+        //将预览绘制到一个OES纹理，再将纹理绘制到屏幕
+        /*beginRenderTarget(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mOESTextureId);
+        GLUtil.checkGlError();
+        mPreview.draw();
+        GLUtil.checkGlError();
+        endRenderTarget();
+        mOes2OesPicture.draw();*/
     }
 
     @Override
@@ -85,8 +99,8 @@ public class MyGLRenderer implements MySurfaceView.Renderer {
         mPreviewTextureId = -1;
 
         mGLCopyJni.release();
-        GLES20.glDeleteTextures(1, new int[]{mBufferTextureId}, 0);
-        mBufferTextureId = -1;
+        GLES20.glDeleteTextures(1, new int[]{mOESTextureId}, 0);
+        mOESTextureId = -1;
 
         if(mFrameBuffer != null) {
             GLES20.glDeleteFramebuffers(1, mFrameBuffer, 0);
@@ -97,42 +111,20 @@ public class MyGLRenderer implements MySurfaceView.Renderer {
         if(mFrameBuffer == null){
             mFrameBuffer = new int[1];
             GLES20.glGenFramebuffers(1, mFrameBuffer, 0);
-            checkFramebufferStatus();
+            GLUtil.checkGlError();
         }
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, mFrameBuffer[0]);
-        checkFramebufferStatus();
+        GLUtil.checkGlError();
 
         GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0,
                 target, textureId, 0);
-        checkFramebufferStatus();
+        GLUtil.checkFramebufferStatus();
     }
 
     public void endRenderTarget(){
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
         GLUtil.checkGlError();
-    }
-
-    public static void checkFramebufferStatus() {
-        int status = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
-        if (status != GLES20.GL_FRAMEBUFFER_COMPLETE) {
-            String msg = "";
-            switch (status) {
-                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-                    msg = "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
-                    break;
-                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
-                    msg = "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS";
-                    break;
-                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-                    msg = "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
-                    break;
-                case GLES20.GL_FRAMEBUFFER_UNSUPPORTED:
-                    msg = "GL_FRAMEBUFFER_UNSUPPORTED";
-                    break;
-            }
-            throw new RuntimeException(msg + " : 0x" + Integer.toHexString(status));
-        }
     }
 
 }

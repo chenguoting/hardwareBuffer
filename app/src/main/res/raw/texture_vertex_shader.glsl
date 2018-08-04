@@ -6,6 +6,6 @@ attribute vec4 aTextureCoord;
 varying vec2 vTextureCoord;
 
 void main() {
-  gl_Position = uMVPMatrix * aPosition;
-  vTextureCoord = (uSTMatrix * aTextureCoord).st;
+    gl_Position = uMVPMatrix * aPosition;
+    vTextureCoord = (uSTMatrix * aTextureCoord).st;
 }

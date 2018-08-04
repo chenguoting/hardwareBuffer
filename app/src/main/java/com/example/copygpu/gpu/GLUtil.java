@@ -115,6 +115,8 @@ public class GLUtil {
             // Set filtering
             GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
             GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+            GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
 
             // Load the bitmap into the bound texture.
             //也可以通过glTexImage2D将数据传入texture，设置格式
@@ -169,6 +171,28 @@ public class GLUtil {
 
         return textures[0];
 
+    }
+
+    public static void checkFramebufferStatus() {
+        int status = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
+        if (status != GLES20.GL_FRAMEBUFFER_COMPLETE) {
+            String msg = "";
+            switch (status) {
+                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+                    msg = "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
+                    break;
+                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+                    msg = "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS";
+                    break;
+                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+                    msg = "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
+                    break;
+                case GLES20.GL_FRAMEBUFFER_UNSUPPORTED:
+                    msg = "GL_FRAMEBUFFER_UNSUPPORTED";
+                    break;
+            }
+            throw new RuntimeException(msg + " : 0x" + Integer.toHexString(status));
+        }
     }
 
 }

@@ -4,5 +4,5 @@ varying vec2 vTextureCoord;
 uniform samplerExternalOES uTextureSampler;
 
 void main() {
-  gl_FragColor = texture2D(uTextureSampler, vTextureCoord);
+    gl_FragColor = texture2D(uTextureSampler, vTextureCoord);
 }
